@@ -1,4 +1,4 @@
-# Cetaklah status code dan deskripsinya dari HTTP response header pada halaman its.ac.id
+# Cetaklah versi HTTP dari HTTP response header pada halaman web its.ac.id
 import socket
 import ssl
 

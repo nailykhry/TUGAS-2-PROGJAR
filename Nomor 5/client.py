@@ -1,3 +1,5 @@
+# Dapatkanlah daftar menu pada halaman utama classroom.its.ac.id dengan melakukan parsing HTML
+
 import socket
 import ssl
 from bs4 import BeautifulSoup
