@@ -1,7 +1,7 @@
 import socket
 import configparser
 import os
-import string
+
 
 from bs4 import BeautifulSoup
 
@@ -125,7 +125,7 @@ def main():
                 response = header + response
                 if content_type2 == 'html':
                     soup = BeautifulSoup(response, 'html.parser')
-                    print(soup.title.string)
+                    # print(soup.title.string)
                     print(soup.get_text())
 
                 else:

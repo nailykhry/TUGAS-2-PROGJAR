@@ -1,9 +1,10 @@
-import configparser
-import select
-import socket
-import sys
-import os
+from bs4 import BeautifulSoup
 import threading
+import os
+import sys
+import socket
+import select
+import configparser
 
 
 # membaca file konfigurasi
@@ -76,14 +77,6 @@ class Client(threading.Thread):
         self.size = 1024
         self.base_dir = os.path.abspath(os.path.dirname(__file__))
         self.dataset_dir = self.base_dir + '/dataset'
-
-    def isFileExist(self, file_name):
-        path = os.getcwdb().decode('utf-8')
-        path = os.path.join(path, 'dataset')
-        dir_list = os.listdir(path)
-        if file_name in dir_list:
-            return True
-        return False
 
     def getResponseHeader(self, status_code, content_type, content_length):
         response_header = 'HTTP/1.1 '+status_code+'\r\nContent-Type: '+content_type+'; charset=UTF-8\r\nContent-Length:' \
@@ -201,10 +194,20 @@ class Client(threading.Thread):
 
                 elif self.moveBack(check_path) == self.dataset_dir:
                     dir_list = os.listdir(self.moveBack(check_path))
-                    dir_list = '\n'.join(dir_list)
 
+                    def linkList(dir):
+                        return '<li><a href="/dataset/'+dir+'">'+dir+'</a></li>'
+
+                    dir_list = list(map(linkList, dir_list))
+                    dir_list = '\n'.join(dir_list)
+                    dir_list = '<html><body><h1>Data yang tersedia di Dataset:</h1><ul>' + \
+                        dir_list+'</ul><a href="/">Back</a></body></html>'
+                    soup = BeautifulSoup(dir_list, 'html.parser')
+                    a_tag = soup.find('a')
+                    url = a_tag.get('href')
+                    print(url)
                     response_header = self.getResponseHeader(
-                        '404 Not Found', 'text/plain', len(dir_list))
+                        '404 Not Found', 'text/html', len(dir_list))
 
                     self.client.sendall(response_header.encode(
                         'utf-8') + dir_list.encode('utf-8'))
