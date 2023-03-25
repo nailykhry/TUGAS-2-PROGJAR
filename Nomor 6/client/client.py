@@ -1,8 +1,7 @@
-from inspect import getfile
-import sys
 import socket
 import configparser
 import os
+import string
 
 from bs4 import BeautifulSoup
 
@@ -35,6 +34,7 @@ def getFile(client, file_name):
             if not data:
                 break
             f.write(data)
+    print('hai aman')
 
 
 def getContentType(res):
@@ -64,31 +64,51 @@ def getBody(client):
     return response
 
 
-def main(elements):
+def main():
     try:
-        for e in elements:
+        current_dir = '/'
+        while True:
             client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             client.connect((host, int(port)))
-            # client.send(bytes(e+'\r\n', encoding='utf-8'))
+            print('\nCurrent Working Directory: ' + current_dir)
+            e = input("Masukkan URN atau ketik 'CTRL+C' untuk keluar: ")
 
+            if e == 'back' or e == '/back':
+                if current_dir != '/':
+                    current_dir = current_dir.split("/")
+                    current_dir.pop()
+                    current_dir = "/".join(current_dir)
+                    if current_dir == '':
+                        current_dir = '/'
+                client.shutdown(socket.SHUT_RDWR)
+                client.close()
+                continue
+
+            if current_dir != '/':
+                e = current_dir + e
             request_header = ("GET " +
                               e +
                               " HTTP/1.1\r\n" +
                               "Host: " +
                               host + "\r\n" +
-                              "Connection: close\r\n" +
                               "\r\n").encode('utf-8')
 
             client.send(request_header)
             header = getHeader(client)
 
             status_code = getStatusCode(header)
-            if(status_code == '200'):
+            if status_code == '200':
                 content_type, content_type2 = getContentType(header)
 
-                if(content_type == 'application'):
+                if content_type2 == 'dir':
+                    response = getBody(client)
+                    response = header + response
+                    response = response.split('\r\n')[-1]
+                    current_dir = response
+                elif content_type == 'application':
                     file_name = getFileName(e)
                     getFile(client, file_name)
+                    print(header)
                 else:
                     response = getBody(client)
                     response = header + response
@@ -111,12 +131,10 @@ def main(elements):
                 else:
                     print(response)
 
+    finally:
         client.shutdown(socket.SHUT_RDWR)
         client.close()
 
-    except Exception as msg:
-        print(msg)
-
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()
