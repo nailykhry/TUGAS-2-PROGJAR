@@ -34,7 +34,6 @@ def getFile(client, file_name):
             if not data:
                 break
             f.write(data)
-    print('hai aman')
 
 
 def getContentType(res):
