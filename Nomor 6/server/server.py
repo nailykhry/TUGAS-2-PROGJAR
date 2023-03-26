@@ -78,17 +78,20 @@ class Client(threading.Thread):
         self.base_dir = os.path.abspath(os.path.dirname(__file__))
         self.dataset_dir = self.base_dir + '/dataset'
 
+    # Concat response header
     def getResponseHeader(self, status_code, content_type, content_length):
         response_header = 'HTTP/1.1 '+status_code+'\r\nContent-Type: '+content_type+'; charset=UTF-8\r\nContent-Length:' \
             + str(content_length) + '\r\n\r\n'
         return response_header
 
+    # Read file untuk HTML
     def readFile(self, file_name):
         f = open(file_name, 'r')
         response_data = f.read()
         f.close()
         return response_data
 
+    # Show 404
     def viewNotFound(self):
         response_data = self.readFile('404.html')
         content_length = len(response_data)
@@ -97,102 +100,96 @@ class Client(threading.Thread):
         self.client.sendall(response_header.encode(
             'utf-8') + response_data.encode('utf-8'))
 
+    # Move up one directory
     def moveBack(self, path):
         new_path = path.split("/")
         new_path.pop()
         new_path = "/".join(new_path)
         return new_path
 
+    # SendFile buat download
+    def sendFile(self, file_path):
+        with open(file_path, 'rb') as f:
+            data = f.read(self.size)
+            while data:
+                self.client.send(data)
+                data = f.read(self.size)
+
     # Proses mengirim dan
     # menerima data
     def run(self):
         running = 1
         while running:
+            # Terima request
             data = self.client.recv(self.size)
             print('received: ', self.address, data)
 
+            # Olah header
             data = data.decode('utf-8')
             request_header = data.split('\r\n')
+
+            # Ambil commandnya apa
             request_file = request_header[0].split()
             if len(request_file) > 1:
                 request_file = request_file[1]
+
             response_header = b''
             response_data = b''
 
             # HELP
             if request_file == '/help' or request_file == 'help':
-                response_data = ('Berikut merupakan command yang dapat digunakan: \n\n' +
-                                 '~ /help : untuk melihat command tersedia\n' +
-                                 '~ / atau /index.html : untuk membuka index.html\n' +
-                                 '~ /back : untuk kembali kedirectory sebelumnya')
+                response_data = ('<html><head><style>body{background-color: #FFC0D3;}</style></head>' +
+                                 '<body><h1>Berikut merupakan command yang dapat digunakan: \n</h1>' +
+                                 '<h3>~ /help : untuk melihat command tersedia - harus di root\n</h3>' +
+                                 '<h3>~ / atau /index.html : untuk membuka index.html\n</h3>' +
+                                 '<h3>~ /:nama directory : untuk pindah directory\n</h3>' +
+                                 '<h3>~ /:nama file : untuk download file\n</h3>' +
+                                 '<h3>~ /back : untuk kembali kedirectory sebelumnya\n</h3><a href="/">Back</a></body></html>')
 
                 response_header = self.getResponseHeader(
-                    '200 OK', 'text/plain', len(response_data))
-
-                self.client.sendall(response_header.encode(
-                    'utf-8') + response_data.encode('utf-8'))
-
-            # CHANGE DIRECTORY
-            elif request_file == '/back' or request_file == 'back':
-                if self.current_dir != self.base_dir:
-                    self.current_dir = self.current_dir.split("/")
-                    self.current_dir.pop()
-                    self.current_dir = "/".join(self.current_dir)
-                    if self.current_dir == '':
-                        self.current_dir = '/'
-                    response_data = (
-                        'Berhasil berpindah ke - directory : ' + self.current_dir)
-                else:
-                    response_data = 'Anda berada pada root directory'
-                content_length = len(response_data)
-                response_header = self.getResponseHeader(
-                    '200 OK', 'text/plain', content_length)
-
+                    '200 OK', 'text/html', len(response_data))
                 self.client.sendall(response_header.encode(
                     'utf-8') + response_data.encode('utf-8'))
 
             # Cek ada tidaknya directory / file
             else:
+                print(request_file)
                 check_path = self.base_dir + ''.join(request_file)
-                print(check_path)
-                if request_file == '/' or request_file == 'index.html' or request_file == '/index.html':
-                    f = open('index.html', 'r')
-                    response_data = f.read()
-                    f.close()
-
+                # Untuk request ke home/index.html
+                if (request_file == '/' or request_file == 'index.html' or request_file == '/index.html'):
+                    response_data = self.readFile('index.html')
                     content_length = len(response_data)
+
                     response_header = self.getResponseHeader(
                         '200 OK', 'text/html', content_length)
-
                     self.client.sendall(response_header.encode(
                         'utf-8') + response_data.encode('utf-8'))
 
-                elif os.path.exists(check_path) and os.path.isdir(check_path):
-                    self.current_dir = check_path
-                    response_data = (self.current_dir.split(self.base_dir)[1])
+                # Cek kalo semisal directory nanti langsung change directory
+                elif os.path.exists(check_path) and os.path.isdir(check_path) and request_file[-1] != '/':
+                    print(request_file)
+                    current_dir = check_path
+                    response_data = (current_dir.split(self.base_dir)[1])
                     content_length = len(response_data)
+
                     response_header = self.getResponseHeader(
                         '200 OK', 'text/dir', content_length)
                     self.client.sendall(response_header.encode(
                         'utf-8') + response_data.encode('utf-8'))
 
+                # Cek kalo semisal dia ternyata file
                 elif os.path.isfile(check_path):
                     file_path = check_path
                     content_length = os.path.getsize(file_path)
                     file_extention = file_path.split('.')[-1]
-                    print(file_path)
-                    print(request_file)
+
                     response_header = self.getResponseHeader(
                         '200 OK', 'application/' + file_extention, content_length)
-
                     self.client.send(response_header.encode('utf-8'))
-                    with open(file_path, 'rb') as f:
-                        data = f.read(self.size)
-                        while data:
-                            self.client.send(data)
-                            data = f.read(self.size)
+                    self.sendFile(file_path)
 
-                elif self.moveBack(check_path) == self.dataset_dir:
+                # Untuk print daftar isi directory saat tidak ada file
+                elif self.moveBack(check_path) == self.dataset_dir or check_path == self.dataset_dir:
                     dir_list = os.listdir(self.moveBack(check_path))
 
                     def linkList(dir):
@@ -202,18 +199,18 @@ class Client(threading.Thread):
                     dir_list = '\n'.join(dir_list)
                     dir_list = '<html><head><style>body{background-color: #FFC0D3;}</style></head><body><h1>Data yang tersedia di Dataset:</h1><ul>' + \
                         dir_list+'</ul><a href="/">Back</a></body></html>'
-                    soup = BeautifulSoup(dir_list, 'html.parser')
-                    a_tag = soup.find('a')
-                    url = a_tag.get('href')
-                    print(url)
+                    # soup = BeautifulSoup(dir_list, 'html.parser')
+                    # a_tag = soup.find('a')
+                    # url = a_tag.get('href')
+                    # print(url)
+
                     response_header = self.getResponseHeader(
                         '404 Not Found', 'text/html', len(dir_list))
-
                     self.client.sendall(response_header.encode(
                         'utf-8') + dir_list.encode('utf-8'))
 
+                # Apabila tidak ada semua menampilkan notfound
                 else:
-                    print(self.moveBack(check_path))
                     self.viewNotFound()
 
             self.client.close()
