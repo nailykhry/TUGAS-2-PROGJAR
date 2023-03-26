@@ -133,7 +133,7 @@ class Client(threading.Thread):
                     'utf-8') + response_data.encode('utf-8'))
 
             # CHANGE DIRECTORY
-            elif request_file.split()[0] == '/back' or request_file.split()[0] == 'back':
+            elif request_file == '/back' or request_file == 'back':
                 if self.current_dir != self.base_dir:
                     self.current_dir = self.current_dir.split("/")
                     self.current_dir.pop()
@@ -153,7 +153,7 @@ class Client(threading.Thread):
 
             # Cek ada tidaknya directory / file
             else:
-                check_path = self.base_dir + request_file
+                check_path = self.base_dir + ''.join(request_file)
                 print(check_path)
                 if request_file == '/' or request_file == 'index.html' or request_file == '/index.html':
                     f = open('index.html', 'r')
@@ -200,7 +200,7 @@ class Client(threading.Thread):
 
                     dir_list = list(map(linkList, dir_list))
                     dir_list = '\n'.join(dir_list)
-                    dir_list = '<html><body><h1>Data yang tersedia di Dataset:</h1><ul>' + \
+                    dir_list = '<html><head><style>body{background-color: #FFC0D3;}</style></head><body><h1>Data yang tersedia di Dataset:</h1><ul>' + \
                         dir_list+'</ul><a href="/">Back</a></body></html>'
                     soup = BeautifulSoup(dir_list, 'html.parser')
                     a_tag = soup.find('a')

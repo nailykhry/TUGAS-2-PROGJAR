@@ -64,6 +64,11 @@ def getBody(client):
     return response
 
 
+def printHTMLParser(response):
+    soup = BeautifulSoup(response, 'html.parser')
+    print(soup.get_text())
+
+
 def main():
     try:
         current_dir = '/'
@@ -72,6 +77,9 @@ def main():
             client.connect((host, int(port)))
             print('\nCurrent Working Directory: ' + current_dir)
             e = input("Masukkan URN atau ketik 'CTRL+C' untuk keluar: ")
+
+            # untuk clear history sebelumnya
+            os.system('cls||clear')
 
             if e == 'back' or e == '/back':
                 if current_dir != '/':
@@ -97,8 +105,8 @@ def main():
             header = getHeader(client)
 
             status_code = getStatusCode(header)
+            content_type, content_type2 = getContentType(header)
             if status_code == '200':
-                content_type, content_type2 = getContentType(header)
 
                 if content_type2 == 'dir':
                     response = getBody(client)
@@ -113,20 +121,16 @@ def main():
                     response = getBody(client)
                     response = header + response
                     if content_type2 == 'html':
-                        soup = BeautifulSoup(response, 'html.parser')
-                        print(soup.title.string)
-                        print(soup.get_text())
+                        printHTMLParser(response)
 
                     else:
                         print(response)
+
             else:
-                content_type, content_type2 = getContentType(header)
                 response = getBody(client)
                 response = header + response
                 if content_type2 == 'html':
-                    soup = BeautifulSoup(response, 'html.parser')
-                    # print(soup.title.string)
-                    print(soup.get_text())
+                    printHTMLParser(response)
 
                 else:
                     print(response)
