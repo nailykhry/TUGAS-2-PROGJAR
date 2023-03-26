@@ -24,8 +24,12 @@ with socket.create_connection((hostname, 443)) as sock:
             menu_items = navbar.find_all(
                 'a', class_=['nav-link', 'dropdown-item'])
             if menu_items:
-                for item in menu_items:
-                    print(item.text.strip())
+                check = ['dropdown-item']
+                for item in menu_items[:-1]:
+                    if item['class'] == check:
+                        print('\t' + item.text.strip())
+                    else:
+                        print(item.text.strip())
             else:
                 print('Menu tidak ditemukan.')
         else:
